@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor - NebuMarkDown</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --accent-color: #007bff;
+            --font-size: 16px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .topbar i {
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+        }
+
+        .editor-container,
+        .preview-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .editor-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            font-size: var(--font-size);
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: none;
+        }
+
+        .preview-container {
+            border-left: 1px solid #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown i {
+            cursor: pointer;
+        }
+
+        .settings-dropdown,
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            border-radius: 6px;
+            transition: opacity 0.3s ease;
+        }
+
+        .settings-dropdown.show,
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .settings-dropdown label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .settings-dropdown input,
+        .settings-dropdown button {
+            margin-bottom: 10px;
+        }
+
+        /* Global Dark Mode Styling */
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        .topbar.dark-mode {
+            background-color: #1f1f1f;
+        }
+
+        .editor-container.dark-mode,
+        .preview-container.dark-mode {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        textarea.dark-mode {
+            background-color: #2b2b2b;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        #preview.dark-mode {
+            background-color: #2b2b2b;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        table.dark-mode {
+            background-color: #2e2e2e;
+            border-color: #444;
+        }
+
+        th.dark-mode {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        td.dark-mode {
+            background-color: #2e2e2e;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
+        tr.dark-mode:hover {
+            background-color: #3c3c3c;
+        }
+
+        .settings-dropdown.dark-mode,
+        .dropdown-content.dark-mode {
+            background-color: #1f1f1f;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        .settings-dropdown.dark-mode button {
+            background-color: #3a3a3a;
+            color: white;
+        }
+
+        a.dark-mode {
+            color: #007bff;
+        }
+
+        a.dark-mode:hover {
+            background-color: #3a3a3a;
+        }
+
+        .topbar i.dark-mode {
+            color: #e0e0e0;
+        }
+
+        .topbar i:hover.dark-mode {
+            color: #007bff;
+        }
+
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navbar -->
+    <div class="topbar">
+        <span>NebuMarkDown</span>
+        <div>
+            <i class="fas fa-upload" id="import-md"></i>
+            <i class="fas fa-download" id="toggle-export"></i>
+            <i class="fas fa-cog" id="toggle-settings"></i>
+            <input type="file" id="import-markdown" style="display: none;" accept=".md" />
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Editor Container -->
+        <div class="editor-container" id="editor-container">
+            <textarea id="markdown-input" placeholder="Write your Markdown here..."></textarea>
+        </div>
+        <!-- Preview Container -->
+        <div class="preview-container" id="preview-container">
+            <div id="preview"></div>
+        </div>
+    </div>
+
+    <!-- Export Menu -->
+    <div class="dropdown-content" id="export-menu">
+        <input type="text" id="file-name" placeholder="Enter file name" />
+        <i class="fas fa-file-code" id="export-as-html"></i>
+        <i class="fas fa-file-alt" id="export-as-md"></i>
+    </div>
+
+    <!-- Settings Menu -->
+    <div class="settings-dropdown" id="settings-menu">
+        <label for="color-picker">Accent Color:</label>
+        <input type="color" id="color-picker" value="#007bff" />
+
+        <label for="font-size-slider">Font Size:</label>
+        <input type="range" id="font-size-slider" min="12" max="24" value="16" />
+
+        <label for="dark-mode-toggle">Dark Mode:</label>
+        <input type="checkbox" id="dark-mode-toggle" />
+        <button id="reset-settings">Reset Settings</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        const markdownInput = document.getElementById('markdown-input');
+        const preview = document.getElementById('preview');
+        const exportAsHtmlBtn = document.getElementById('export-as-html');
+        const exportAsMdBtn = document.getElementById('export-as-md');
+        const exportMenu = document.getElementById('export-menu');
+        const fileNameInput = document.getElementById('file-name');
+        const importMdBtn = document.getElementById('import-md');
+        const importMdInput = document.getElementById('import-markdown');
+        const toggleSettingsBtn = document.getElementById('toggle-settings');
+        const settingsMenu = document.getElementById('settings-menu');
+        const colorPicker = document.getElementById('color-picker');
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const resetSettingsBtn = document.getElementById('reset-settings');
+        const toggleEditorBtn = document.getElementById('toggle-editor');
+
+        markdownInput.addEventListener('input', updatePreview);
+        function updatePreview() {
+            preview.innerHTML = marked.parse(markdownInput.value);
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+            const tables = preview.getElementsByTagName('table');
+            for (let table of tables) {
+                const headers = table.getElementsByTagName('th');
+                for (let header of headers) {
+                    header.style.backgroundColor = accentColor;
+                }
+            }
+        }
+
+        exportAsHtmlBtn.addEventListener('click', function () {
+            const htmlContent = preview.innerHTML;
+            const fileName = fileNameInput.value || 'document';
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${fileName}.html`;
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+
+        exportAsMdBtn.addEventListener('click', function () {
+            const markdownContent = markdownInput.value;
+            const fileName = fileNameInput.value || 'document';
+            const blob = new Blob([markdownContent], { type: 'text/markdown' });
+            saveAs(blob, `${fileName}.md`);
+        });
+
+        importMdBtn.addEventListener('click', function () {
+            importMdInput.click();
+        });
+
+        importMdInput.addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    markdownInput.value = e.target.result;
+                    updatePreview();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        document.getElementById('toggle-export').addEventListener('click', function () {
+            exportMenu.classList.toggle('show');
+        });
+
+        document.getElementById('toggle-settings').addEventListener('click', function () {
+            settingsMenu.classList.toggle('show');
+        });
+
+        colorPicker.addEventListener('input', function () {
+            document.documentElement.style.setProperty('--accent-color', colorPicker.value);
+            updatePreview();
+        });
+
+        fontSizeSlider.addEventListener('input', function () {
+            document.documentElement.style.setProperty('--font-size', fontSizeSlider.value + 'px');
+            markdownInput.style.fontSize = fontSizeSlider.value + 'px';
+            updatePreview();
+        });
+
+        darkModeToggle.addEventListener('change', function () {
+            document.body.classList.toggle('dark-mode');
+            document.getElementById('editor-container').classList.toggle('dark-mode');
+            document.getElementById('preview-container').classList.toggle('dark-mode');
+            document.getElementById('markdown-input').classList.toggle('dark-mode');
+            document.getElementById('preview').classList.toggle('dark-mode');
+            exportMenu.classList.toggle('dark-mode');
+            settingsMenu.classList.toggle('dark-mode');
+            updatePreview();
+        });
+
+        resetSettingsBtn.addEventListener('click', function () {
+            colorPicker.value = '#007bff';
+            document.documentElement.style.setProperty('--accent-color', '#007bff');
+            fontSizeSlider.value = '16';
+            document.documentElement.style.setProperty('--font-size', '16px');
+            markdownInput.style.fontSize = '16px';
+            if (darkModeToggle.checked) {
+                darkModeToggle.checked = false;
+                document.body.classList.remove('dark-mode');
+                document.getElementById('editor-container').classList.remove('dark-mode');
+                document.getElementById('preview-container').classList.remove('dark-mode');
+                document.getElementById('markdown-input').classList.remove('dark-mode');
+                document.getElementById('preview').classList.remove('dark-mode');
+                exportMenu.classList.remove('dark-mode');
+                settingsMenu.classList.remove('dark-mode');
+            }
+            updatePreview();
+        });
+    </script>
+</body>
+
+</html>
